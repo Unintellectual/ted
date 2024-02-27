@@ -6,12 +6,15 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 
 /*** Defines ***/
 
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define ABUF_INIT                                                              \
+  { NULL, 0 }
 
 /*** Data ***/
 
@@ -81,16 +84,18 @@ int getCursorPosition(int *rows, int *cols) {
   }
   buf[i] = '\0';
 
-  printf(" \r\n&buf[1]: '%s'\r\n", &buf[1]);
-  editorReadKey();
+  if (buf[0] != '\x1b' || buf[1] != '[')
+    return -1;
+  if (sscanf(&buf[2], "%d;%d", rows, cols) != 2)
+    return -1;
 
-  return -1;
+  return 0;
 }
 
 int getWindowSize(int *rows, int *cols) {
   struct winsize ws;
 
-  if (1 || ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+  if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
     if (write(STDOUT_FILENO, "\x1b[999C\x1b[999B", 12) != 12)
       return -1;
     return getCursorPosition(rows, cols);
@@ -101,22 +106,51 @@ int getWindowSize(int *rows, int *cols) {
   }
 }
 
+/*** Append Buffer ***/
+
+struct appendBuffer {
+  char *b;
+  int len;
+};
+
+void abAppend(struct appendBuffer *ab, const char *s, int len) {
+  char *new = realloc(ab->b, ab->len + len);
+
+  if (new == NULL)
+    return;
+  memcpy(&new[ab->len], s, len);
+  ab->b = new;
+  ab->len += len;
+}
+
+void abFree(struct appendBuffer *ab) { free(ab->b); }
+
 /*** output ***/
 
-void editorDrawRows() {
-  int i;
-  for (i = 0; i < 24; i++) {
-    write(STDOUT_FILENO, "~\r\n", 3);
+void editorDrawRows(struct appendBuffer *ab) {
+  int y;
+  for (y = 0; y < E.screenRows; y++) {
+    abAppend(ab, "~", 1);
+
+    abAppend(ab, "\x1b[K", 3);
+    if (y < E.screenRows - 1) {
+      abAppend(ab, "\r\n", 2);
+    }
   }
 }
 
 void editorRefreshScreen() {
-  write(STDOUT_FILENO, "\x1b[2J", 4);
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  struct appendBuffer ab = ABUF_INIT;
+  abAppend(&ab, "\x1b[?25l", 6);
+  abAppend(&ab, "\x1b[H", 3);
 
-  editorDrawRows();
+  editorDrawRows(&ab);
 
-  write(STDOUT_FILENO, "\x1b[H", 3);
+  abAppend(&ab, "\x1b[H", 3);
+  abAppend(&ab, "\x1b[?25h", 6);
+
+  write(STDOUT_FILENO, ab.b, ab.len);
+  abFree(&ab);
 }
 
 /*** input ***/
