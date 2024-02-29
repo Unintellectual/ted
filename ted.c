@@ -1,4 +1,8 @@
-/*** Includes ***/
+/*** includes ***/
+
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_SOURCE
 
 #include <ctype.h>
 #include <errno.h>
@@ -13,19 +17,12 @@
 #include <time.h>
 #include <unistd.h>
 
-
-/*** Defines ***/
-
-#define _DEFAULT_SOURCE
-#define _BSD_SOURCE
-#define _GNU_SOURCE
+/*** defines ***/
 
 #define TED_VERSION "0.0.1"
 #define TED_TAB_STOP 8
 #define TED_QUIT_TIMES 3
-#define HL_HIGHLIGHT_NUMBERS (1<<0)
-#define HL_HIGHLIGHT_STRINGS (1<<1)
-#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
+
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 enum editorKey {
@@ -41,8 +38,32 @@ enum editorKey {
   PAGE_DOWN
 };
 
+enum editorHighlight {
+  HL_NORMAL = 0,
+  HL_COMMENT,
+  HL_MLCOMMENT,
+  HL_KEYWORD1,
+  HL_KEYWORD2,
+  HL_STRING,
+  HL_NUMBER,
+  HL_MATCH
+};
 
-/*** Data ***/
+#define HL_HIGHLIGHT_NUMBERS (1<<0)
+#define HL_HIGHLIGHT_STRINGS (1<<1)
+
+/*** data ***/
+
+struct editorSyntax {
+  char *filetype;
+  char **filematch;
+  char **keywords;
+  char *singleline_comment_start;
+  char *multiline_comment_start;
+  char *multiline_comment_end;
+  int flags;
+};
+
 typedef struct erow {
   int idx;
   int size;
@@ -52,7 +73,6 @@ typedef struct erow {
   unsigned char *hl;
   int hl_open_comment;
 } erow;
-
 
 struct editorConfig {
   int cx, cy;
@@ -94,6 +114,7 @@ struct editorSyntax HLDB[] = {
   },
 };
 
+#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 
 /*** prototypes ***/
 
@@ -101,8 +122,7 @@ void editorSetStatusMessage(const char *fmt, ...);
 void editorRefreshScreen();
 char *editorPrompt(char *prompt, void (*callback)(char *, int));
 
-
-/*** Terminal ***/
+/*** terminal ***/
 
 void die(const char *s) {
   write(STDOUT_FILENO, "\x1b[2J", 4);
@@ -374,6 +394,7 @@ void editorSelectSyntaxHighlight() {
     }
   }
 }
+
 /*** row operations ***/
 
 int editorRowCxToRx(erow *row, int cx) {
@@ -381,7 +402,7 @@ int editorRowCxToRx(erow *row, int cx) {
   int j;
   for (j = 0; j < cx; j++) {
     if (row->chars[j] == '\t')
-      rx += (KILO_TAB_STOP - 1) - (rx % KILO_TAB_STOP);
+      rx += (TED_TAB_STOP - 1) - (rx % TED_TAB_STOP);
     rx++;
   }
   return rx;
@@ -392,7 +413,7 @@ int editorRowRxToCx(erow *row, int rx) {
   int cx;
   for (cx = 0; cx < row->size; cx++) {
     if (row->chars[cx] == '\t')
-      cur_rx += (KILO_TAB_STOP - 1) - (cur_rx % KILO_TAB_STOP);
+      cur_rx += (TED_TAB_STOP - 1) - (cur_rx % TED_TAB_STOP);
     cur_rx++;
 
     if (cur_rx > rx) return cx;
@@ -407,13 +428,13 @@ void editorUpdateRow(erow *row) {
     if (row->chars[j] == '\t') tabs++;
 
   free(row->render);
-  row->render = malloc(row->size + tabs*(KILO_TAB_STOP - 1) + 1);
+  row->render = malloc(row->size + tabs*(TED_TAB_STOP - 1) + 1);
 
   int idx = 0;
   for (j = 0; j < row->size; j++) {
     if (row->chars[j] == '\t') {
       row->render[idx++] = ' ';
-      while (idx % KILO_TAB_STOP != 0) row->render[idx++] = ' ';
+      while (idx % TED_TAB_STOP != 0) row->render[idx++] = ' ';
     } else {
       row->render[idx++] = row->chars[j];
     }
@@ -531,7 +552,7 @@ void editorDelChar() {
   }
 }
 
-/*** File i/o ***/
+/*** file i/o ***/
 
 char *editorRowsToString(int *buflen) {
   int totlen = 0;
@@ -606,7 +627,6 @@ void editorSave() {
   editorSetStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
-
 /*** find ***/
 
 void editorFindCallback(char *query, int key) {
@@ -679,7 +699,7 @@ void editorFind() {
   }
 }
 
-/*** Append Buffer ***/
+/*** append buffer ***/
 
 struct abuf {
   char *b;
@@ -700,6 +720,7 @@ void abAppend(struct abuf *ab, const char *s, int len) {
 void abFree(struct abuf *ab) {
   free(ab->b);
 }
+
 /*** output ***/
 
 void editorScroll() {
@@ -730,7 +751,7 @@ void editorDrawRows(struct abuf *ab) {
       if (E.numrows == 0 && y == E.screenrows / 3) {
         char welcome[80];
         int welcomelen = snprintf(welcome, sizeof(welcome),
-          "Kilo editor -- version %s", KILO_VERSION);
+          "Ted editor -- version %s", TED_VERSION);
         if (welcomelen > E.screencols) welcomelen = E.screencols;
         int padding = (E.screencols - welcomelen) / 2;
         if (padding) {
@@ -928,7 +949,7 @@ void editorMoveCursor(int key) {
 }
 
 void editorProcessKeypress() {
-  static int quit_times = KILO_QUIT_TIMES;
+  static int quit_times = TED_QUIT_TIMES;
 
   int c = editorReadKey();
 
@@ -1005,10 +1026,10 @@ void editorProcessKeypress() {
       break;
   }
 
-  quit_times = KILO_QUIT_TIMES;
+  quit_times = TED_QUIT_TIMES;
 }
 
-/*** Init ***/
+/*** init ***/
 
 void initEditor() {
   E.cx = 0;
