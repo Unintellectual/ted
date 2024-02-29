@@ -41,6 +41,7 @@ typedef struct erow{
 
 struct editorConfig {
   int cx, cy;
+  int rowoff;
   int screenRows;
   int screenCols;
   int numrows;
@@ -186,17 +187,11 @@ void editorOpen(char *filename) {
   char *line = NULL;
   size_t linecap = 0;
   ssize_t linelen;
-  linelen = getline(&line, &linecap, fp);
-  if (linelen != -1) {
+  while ((linelen = getline(&line, &linecap, fp)) != -1) {
     while (linelen > 0 && (line[linelen - 1] == '\n' ||
                            line[linelen - 1] == '\r'))
       linelen--;
     editorAppendRow(line, linelen);
-    E.row.size = linelen;
-    E.row.chars = malloc(linelen + 1);
-    memcpy(E.row.chars, line, linelen);
-    E.row.chars[linelen] = '\0';
-    E.numrows = 1;
   }
   free(line);
   fclose(fp);
@@ -225,33 +220,37 @@ void abFree(struct appendBuffer *ab) { free(ab->b); }
 void editorDrawRows(struct appendBuffer *ab) {
   int y;
   for (y = 0; y < E.screenRows; y++) {
-     if (y >= E.numrows) {
-    if (y == E.screenRows == 0 && y == E.screenRows /  3 ){
-      char welcome[80];
-      int welcomeLen = snprintf(welcome, sizeof(welcome), "Ted editor --version %s", TED_VERSION);
-
-      if (welcomeLen > E.screenCols) welcomeLen = E.screenCols;
-      int padding = (E.screenCols - welcomeLen) / 2;
-      if (padding) {
+    int filerow = y + E.rowoff;
+    if (filerow >= E.numrows) {
+      if (E.numrows == 0 && y == E.screenRows / 3) {
+        char welcome[80];
+        int welcomelen = snprintf(welcome, sizeof(welcome),
+          "Ted editor -- version %s", TED_VERSION);
+        if (welcomelen > E.screenCols) welcomelen = E.screenCols;
+        int padding = (E.screenCols - welcomelen) / 2;
+        if (padding) {
+          abAppend(ab, "~", 1);
+          padding--;
+        }
+        while (padding--) abAppend(ab, " ", 1);
+        abAppend(ab, welcome, welcomelen);
+      } else {
         abAppend(ab, "~", 1);
-        padding--;
       }
-      while (padding--) abAppend(ab, " ", 1);
-      abAppend(ab,welcome, welcomeLen);
-
     } else {
-      int len = E.row[y].size;
+      int len = E.row[filerow].size;
       if (len > E.screenCols) len = E.screenCols;
-      abAppend(ab, E.row[y].chars, len);
-    }
-
-    abAppend(ab, "~", 1);
-
-    abAppend(ab, "\x1b[K", 3);
-    if (y < E.screenRows - 1) {
-      abAppend(ab, "\r\n", 2);
+      abAppend(ab, E.row[filerow].chars, len);
     }
   }
+}
+
+void editorScroll(){
+  if (E.cy < E.rowoff){
+    E.rowoff = E.cy;
+  }
+  if (E.cy >= E.rowoff + E.screenRows){
+    E.rowoff = E.cy - E.screenRows + 1
   }
 }
 
@@ -337,6 +336,7 @@ void editorProcessKeypress() {
 void initEditor() {
   E.cx = 0;
   E.cy = 0;
+  E.rowoff = 0;
   E.numrows = 0;
   E.row = NULL;
 
