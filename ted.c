@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
+#include "sys/types.h"
 #include <unistd.h>
 
 /*** Defines ***/
@@ -15,6 +16,9 @@
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT                                                              \
   { NULL, 0 }
+#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
+#define _GNU_SOURCE
 
 enum editorKey {
   ARROW_LEFT = 1000,
@@ -30,11 +34,17 @@ enum editorKey {
 
 
 /*** Data ***/
+typedef struct erow{
+  int size;
+  char *chars
+} erow;
 
 struct editorConfig {
   int cx, cy;
   int screenRows;
   int screenCols;
+  int numrows;
+  erow row;
   struct termios orig_termios;
 };
 
@@ -157,6 +167,28 @@ int getWindowSize(int *rows, int *cols) {
   }
 }
 
+/*** File i/o ***/
+
+void editorOpen(char *filename) {
+  FILE *fp = fopen(filename, "r");
+  if (!fp) die("fopen");
+  char *line = NULL;
+  size_t linecap = 0;
+  ssize_t linelen;
+  linelen = getline(&line, &linecap, fp);
+  if (linelen != -1) {
+    while (linelen > 0 && (line[linelen - 1] == '\n' ||
+                           line[linelen - 1] == '\r'))
+      linelen--;
+    E.row.size = linelen;
+    E.row.chars = malloc(linelen + 1);
+    memcpy(E.row.chars, line, linelen);
+    E.row.chars[linelen] = '\0';
+    E.numrows = 1;
+  }
+  free(line);
+  fclose(fp);
+}
 /*** Append Buffer ***/
 
 struct appendBuffer {
@@ -181,6 +213,7 @@ void abFree(struct appendBuffer *ab) { free(ab->b); }
 void editorDrawRows(struct appendBuffer *ab) {
   int y;
   for (y = 0; y < E.screenRows; y++) {
+     if (y >= E.numrows) {
     if (y == E.screenRows / 3){
       char welcome[80];
       int welcomeLen = snprintf(welcome, sizeof(welcome), "Ted editor --version %s", TED_VERSION);
@@ -195,7 +228,9 @@ void editorDrawRows(struct appendBuffer *ab) {
       abAppend(ab,welcome, welcomeLen);
 
     } else {
-      abAppend(ab, "~", 1);
+      int len = E.row.size;
+      if (len > E.screenCols) len = E.screenCols;
+      abAppend(ab, E.row.chars, len);
     }
 
     abAppend(ab, "~", 1);
@@ -204,6 +239,7 @@ void editorDrawRows(struct appendBuffer *ab) {
     if (y < E.screenRows - 1) {
       abAppend(ab, "\r\n", 2);
     }
+  }
   }
 }
 
@@ -289,14 +325,18 @@ void editorProcessKeypress() {
 void initEditor() {
   E.cx = 0;
   E.cy = 0;
+  E.numrows = 0;
 
   if (getWindowSize(&E.screenRows, &E.screenCols) == -1)
     die("getWindowSize");
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   enableRawMode();
   initEditor();
+  if (argc >= 2) {
+    editorOpen(argv[1]);
+  }
 
   while (1) {
     editorProcessKeypress();
