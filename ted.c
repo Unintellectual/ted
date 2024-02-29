@@ -1,26 +1,35 @@
 /*** Includes ***/
 
-#include "sys/ioctl.h"
-#include <asm-generic/ioctls.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
 #include <termios.h>
-#include "sys/types.h"
+#include <time.h>
 #include <unistd.h>
 
+
 /*** Defines ***/
-#define TED_VERSION "0.0.1"
-#define CTRL_KEY(k) ((k) & 0x1f)
-#define ABUF_INIT                                                              \
-  { NULL, 0 }
+
 #define _DEFAULT_SOURCE
 #define _BSD_SOURCE
 #define _GNU_SOURCE
 
+#define TED_VERSION "0.0.1"
+#define TED_TAB_STOP 8
+#define TED_QUIT_TIMES 3
+#define HL_HIGHLIGHT_NUMBERS (1<<0)
+#define HL_HIGHLIGHT_STRINGS (1<<1)
+
+#define CTRL_KEY(k) ((k) & 0x1f)
+
 enum editorKey {
+  BACKSPACE = 127,
   ARROW_LEFT = 1000,
   ARROW_RIGHT,
   ARROW_UP,
@@ -34,9 +43,14 @@ enum editorKey {
 
 
 /*** Data ***/
-typedef struct erow{
+typedef struct erow {
+  int idx;
   int size;
-  char *chars
+  int rsize;
+  char *chars;
+  char *render;
+  unsigned char *hl;
+  int hl_open_comment;
 } erow;
 
 struct editorConfig {
@@ -277,7 +291,7 @@ void editorRefreshScreen() {
   editorDrawRows(&ab);
   
   char buf[32];
-  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, E.cx + 1);
+  snprintf(buf, sizeof(buf), "\x1b[%d;%dH", (E.cy - E.rowoff) + 1, (E.cx - E.coloff) + 1);
 
   abAppend(&ab, "\x1b[?25h", 6);
 
@@ -288,14 +302,18 @@ void editorRefreshScreen() {
 /*** input ***/
 
 void editorMoveCursor(int key) {
+  erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+
   switch (key) {
     case ARROW_LEFT:
       if (E.cx != 0) {
         E.cx--;
       }
       break;
-    case ARROW_RIGHT:    
+    case ARROW_RIGHT:
+    if (row && E.cx < row->size) {    
         E.cx++;
+    }
       break;
     case ARROW_UP:
       if (E.cy != 0) {
@@ -307,6 +325,13 @@ void editorMoveCursor(int key) {
         E.cy++;
        }
       break;
+  }
+
+
+  row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+  int rowlen = row ? row->size : 0;
+  if (E.cx > rowlen) {
+    E.cx = rowlen;
   }
 }
 
