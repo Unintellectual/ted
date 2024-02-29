@@ -25,7 +25,7 @@
 #define TED_QUIT_TIMES 3
 #define HL_HIGHLIGHT_NUMBERS (1<<0)
 #define HL_HIGHLIGHT_STRINGS (1<<1)
-
+#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 enum editorKey {
@@ -53,18 +53,48 @@ typedef struct erow {
   int hl_open_comment;
 } erow;
 
+
 struct editorConfig {
   int cx, cy;
+  int rx;
   int rowoff;
   int coloff;
-  int screenRows;
-  int screenCols;
+  int screenrows;
+  int screencols;
   int numrows;
   erow *row;
+  int dirty;
+  char *filename;
+  char statusmsg[80];
+  time_t statusmsg_time;
+  struct editorSyntax *syntax;
   struct termios orig_termios;
 };
 
 struct editorConfig E;
+
+/*** filetypes ***/
+
+char *C_HL_extensions[] = { ".c", ".h", ".cpp", NULL };
+char *C_HL_keywords[] = {
+  "switch", "if", "while", "for", "break", "continue", "return", "else",
+  "struct", "union", "typedef", "static", "enum", "class", "case",
+
+  "int|", "long|", "double|", "float|", "char|", "unsigned|", "signed|",
+  "void|", NULL
+};
+
+struct editorSyntax HLDB[] = {
+  {
+    "c",
+    C_HL_extensions,
+    C_HL_keywords,
+    "//", "/*", "*/",
+    HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS
+  },
+};
+
+
 
 /*** Terminal ***/
 void die(const char *s) {
