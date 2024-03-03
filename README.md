@@ -14,6 +14,6 @@ Ted is a simple terminal text editor made in C programming language based on ant
 
 
 
-## This is a pet project and I do not intend to make upgrade this even further.
+### This is a pet project and I do not intend to make upgrade this even further.
 
 
