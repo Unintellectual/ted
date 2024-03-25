@@ -5,7 +5,7 @@ Ted is a terminal text editor made in C programming language based on antirez's 
 - Syntax Highlighting
 - Find
 
-[ted preview](./ted.webm)
+![ted preview](./ted.webm)
 
 ## To install and use Ted:
 
