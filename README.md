@@ -1,14 +1,12 @@
 # TED
 
-## Ted is a terminal text editor made in C programming language. With extra features implemented such as:
+#### Ted is a terminal text editor made in C programming language. With extra features implemented such as:
 
 - Syntax Highlighting
 - Find
 Ted is a terminal text editor made in C programming language. With extra features implemented such as:
 
 ![ted preview](./ted.webp)
-
-Feel free to remove any sections that aren't applicable to your project.
 
 ## Table of Contents
 
@@ -25,6 +23,8 @@ Feel free to remove any sections that aren't applicable to your project.
      cd ted
      make
      ./ted
+
+
 ```
 ## [License](./LICENSE)
 
