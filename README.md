@@ -19,18 +19,14 @@ Feel free to remove any sections that aren't applicable to your project.
 
 ## To install and use Ted:
 
-## Usage
-
-- Installation instructions
+## Installation
 ```
      git clone https://github.com/Unintellectual/ted.git
      cd ted
      make
      ./ted
 ```
-- Support instructions
-- Contributing instructions
-- Licence
+## [License](./LICENSE)
 
 
 ## Support
