@@ -1,6 +1,6 @@
 # TED
 
-#### Ted is a terminal text editor made in C programming language. With extra features implemented such as:
+### Ted is a terminal text editor made in C programming language. With extra features implemented such as:
 
 - Syntax Highlighting
 - Find
