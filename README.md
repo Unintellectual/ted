@@ -12,7 +12,7 @@ Feel free to remove any sections that aren't applicable to your project.
 
 ## Table of Contents
 
-- [Installation](#Installation instructions)
+- [Installation](#Installation)
 - [Support](#support)
 - [Contributing](#contributing)
 
