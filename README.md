@@ -12,7 +12,7 @@ Feel free to remove any sections that aren't applicable to your project.
 
 ## Table of Contents
 
-- [Installation](#installation)
+- [Installation](#Installation instructions)
 - [Support](#support)
 - [Contributing](#contributing)
 
@@ -20,8 +20,6 @@ Feel free to remove any sections that aren't applicable to your project.
 ## To install and use Ted:
 
 ## Usage
-
-Replace the contents of `README.md` with your project's:
 
 - Installation instructions
 ```
