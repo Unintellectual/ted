@@ -31,7 +31,7 @@ Ted is a terminal text editor made in C programming language. With extra feature
 
 ## Support
 
-Please [open an issue](https://github.com/fraction/readme-boilerplate/issues/new) for support.
+Please [open an issue](https://github.com/Unintellectual/Ted/issues/new) for support.
 
 ## Contributing
 
