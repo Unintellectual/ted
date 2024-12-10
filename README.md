@@ -35,4 +35,4 @@ Please [open an issue](https://github.com/Unintellectual/Ted/issues/new) for sup
 
 ## Contributing
 
-Please contribute using branch, add commits, and [open a pull request](https://github.com/fraction/readme-boilerplate/compare/).
+Please contribute using branch, add commits, and [open a pull request](https://github.com/Unintellectual/Ted/compare/).
