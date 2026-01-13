@@ -28,11 +28,5 @@ Ted is a terminal text editor made in C programming language. With extra feature
 ```
 ## [License](./LICENSE)
 
-
-## Support
-
-Please [open an issue](https://github.com/Unintellectual/Ted/issues/new) for support.
-
-## Contributing
-
-Please contribute using branch, add commits, and [open a pull request](https://github.com/Unintellectual/Ted/compare/).
+## References
+- Terminal escape codes: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797

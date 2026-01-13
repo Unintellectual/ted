@@ -18,9 +18,9 @@
 #include <unistd.h>
 
 /*** defines ***/
-#define TED_VERSION "0.0.1"
-#define TED_TAB_STOP 8
-#define TED_QUIT_TIMES 3
+#define TED_VERSION "0.0.2"
+#define TED_TAB_STOP 4
+#define TED_QUIT_TIMES 1
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
@@ -90,6 +90,7 @@ struct editorConfig {
   struct termios orig_termios;
 };
 
+// TODO: write a better name for this why is it ONE LETTER!?
 struct editorConfig E;
 
 /*** filetypes ***/
@@ -107,6 +108,7 @@ struct editorSyntax HLDB[] = {
      HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS},
 };
 
+// Highlight Data Buffer
 #define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 
 /*** prototypes ***/
@@ -255,7 +257,7 @@ int getWindowSize(int *rows, int *cols) {
 }
 
 /*** syntax highlighting ***/
-
+// TODO: Make this more readable
 int is_separator(int c) {
   return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
 }
@@ -752,8 +754,7 @@ struct abuf {
   int len;
 };
 
-#define ABUF_INIT                                                              \
-  { NULL, 0 }
+#define ABUF_INIT {NULL, 0}
 
 void abAppend(struct abuf *ab, const char *s, int len) {
   char *new = realloc(ab->b, ab->len + len);
